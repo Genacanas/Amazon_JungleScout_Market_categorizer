@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Plus, Tag, ChevronRight, X, ImageIcon, Star, ShoppingCart } from "lucide-react";
+import { Plus, Tag, ChevronRight, X, ImageIcon, Star, ShoppingCart, Trash2 } from "lucide-react";
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 
 export default function Home() {
@@ -102,6 +102,32 @@ export default function Home() {
       console.error(err);
       alert("⚠️ Connection error while saving. Reverting change.");
       setProducts(originalProducts); // Rollback
+    }
+  };
+
+  const deleteLabel = async (e: React.MouseEvent, labelId: string) => {
+    e.stopPropagation();
+    if (!window.confirm("Are you sure you want to delete this label? All assigned products will become Unassigned.")) return;
+    
+    // Save original state for rollback
+    const originalLabels = [...labels];
+    const originalProducts = [...products];
+    
+    // Optimistic UI update
+    setLabels(labels.filter(l => l.id !== labelId));
+    setProducts(products.map(p => p.label_id === labelId ? { ...p, label_id: null } : p));
+    if (activeFilterLabel === labelId) {
+      setActiveFilterLabel(null);
+    }
+    
+    try {
+      const res = await fetch(`${API_URL}/labels/${labelId}`, { method: 'DELETE' });
+      if (!res.ok) throw new Error("Failed to delete label on server");
+    } catch (err) {
+      console.error(err);
+      alert("⚠️ Connection error. Reverting change.");
+      setLabels(originalLabels);
+      setProducts(originalProducts);
     }
   };
   
@@ -418,7 +444,7 @@ export default function Home() {
                   const asin = e.dataTransfer.getData("text/plain");
                   if (asin) assignLabel(asin, l.id);
                 }}
-                className={`bg-white border-2 rounded-xl p-3 shadow-sm flex items-center justify-between cursor-pointer transition-all duration-200
+                className={`group bg-white border-2 rounded-xl p-3 shadow-sm flex items-center justify-between cursor-pointer transition-all duration-200
                   ${isActiveFilter ? 'border-indigo-500 bg-indigo-50 shadow-md transform scale-[1.02]' : 'border-transparent'}
                   ${isDragTarget ? 'border-indigo-400 bg-indigo-100 scale-[1.05] shadow-lg ring-4 ring-indigo-200' : 'hover:border-gray-300 hover:shadow-md'}
                 `}
@@ -427,9 +453,18 @@ export default function Home() {
                   <div className="w-5 h-5 rounded-full shadow-sm border border-black/10" style={{ backgroundColor: l.color }}></div>
                   <span className={`text-sm ${isActiveFilter ? 'font-bold text-indigo-900' : 'font-medium text-gray-800'}`}>{l.name}</span>
                 </div>
-                <span className={`text-xs font-bold px-2.5 py-1 rounded-full pointer-events-none transition-colors ${isActiveFilter || isDragTarget ? 'bg-indigo-600 text-white shadow-sm' : 'bg-gray-100 text-gray-600'}`}>
-                  {count}
-                </span>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={(e) => deleteLabel(e, l.id)}
+                    className="opacity-0 group-hover:opacity-100 transition-opacity p-1.5 text-red-400 hover:text-white hover:bg-red-500 rounded-md"
+                    title="Delete Label"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                  <span className={`text-xs font-bold px-2.5 py-1 rounded-full pointer-events-none transition-colors ${isActiveFilter || isDragTarget ? 'bg-indigo-600 text-white shadow-sm' : 'bg-gray-100 text-gray-600'}`}>
+                    {count}
+                  </span>
+                </div>
               </div>
             )
           })}
