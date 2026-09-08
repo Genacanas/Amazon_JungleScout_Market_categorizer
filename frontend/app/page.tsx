@@ -124,15 +124,6 @@ export default function Home() {
     ? labels.find(l => l.id === activeFilterLabel) 
     : null;
 
-  if (isLoading) {
-    return (
-      <div className="flex h-screen items-center justify-center bg-gray-50 flex-col gap-4">
-        <div className="w-12 h-12 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin"></div>
-        <p className="text-gray-500 font-medium">Loading market data from Neon DB...</p>
-      </div>
-    );
-  }
-
   return (
     <div className="flex h-screen bg-gray-50 text-gray-900 font-sans">
       
@@ -149,7 +140,7 @@ export default function Home() {
                 ${activeFilterLabel === 'unassigned' ? 'bg-amber-500 text-white border-amber-600 shadow-md' : 'bg-amber-100 text-amber-800 border-transparent hover:bg-amber-200'}`}
               title="Click to view unassigned products"
             >
-              {uncategorizedCount} Unassigned
+              {isLoading ? "..." : uncategorizedCount} Unassigned
             </div>
           </div>
           
@@ -193,33 +184,39 @@ export default function Home() {
               <h2 className="text-lg font-bold text-gray-800">
                 {activeFilterLabel === 'unassigned' ? 'Unassigned Products' : activeFilterLabel ? activeLabelObj?.name : 'Market Overview'}
               </h2>
-              <p className="text-xs text-gray-500">Real-time statistics for {displayedProducts.length} items</p>
+              <p className="text-xs text-gray-500">Real-time statistics for {isLoading ? '...' : displayedProducts.length} items</p>
             </div>
             
             <div className="flex gap-6">
               <div className="bg-gray-50 px-4 py-2 rounded-lg border border-gray-100 text-center">
                 <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Total Revenue</p>
                 <p className="text-lg font-bold text-indigo-700">
-                  €{displayedProducts.reduce((sum, p) => sum + (p.est_revenue || 0), 0).toLocaleString(undefined, {maximumFractionDigits: 0})}
+                  €{isLoading ? "0" : displayedProducts.reduce((sum, p) => sum + (p.est_revenue || 0), 0).toLocaleString(undefined, {maximumFractionDigits: 0})}
                 </p>
               </div>
               <div className="bg-gray-50 px-4 py-2 rounded-lg border border-gray-100 text-center">
                 <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Avg Price</p>
                 <p className="text-lg font-bold text-emerald-600">
-                  €{(displayedProducts.length > 0 ? displayedProducts.reduce((sum, p) => sum + (p.price || 0), 0) / displayedProducts.length : 0).toFixed(2)}
+                  €{isLoading ? "0.00" : (displayedProducts.length > 0 ? displayedProducts.reduce((sum, p) => sum + (p.price || 0), 0) / displayedProducts.length : 0).toFixed(2)}
                 </p>
               </div>
               <div className="bg-gray-50 px-4 py-2 rounded-lg border border-gray-100 text-center">
                 <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Total Reviews</p>
                 <p className="text-lg font-bold text-amber-600">
-                  {displayedProducts.reduce((sum, p) => sum + (p.num_reviews || 0), 0).toLocaleString()}
+                  {isLoading ? "0" : displayedProducts.reduce((sum, p) => sum + (p.num_reviews || 0), 0).toLocaleString()}
                 </p>
               </div>
             </div>
           </div>
 
-          <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
-            {displayedProducts.map(p => {
+          {isLoading ? (
+            <div className="flex items-center justify-center py-20 flex-col gap-4 h-64">
+              <div className="w-10 h-10 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin"></div>
+              <p className="text-gray-500 font-medium">Loading products...</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
+              {displayedProducts.map(p => {
               const pLabel = p.label_id ? labels.find(l => l.id === p.label_id) : null;
               const borderColor = pLabel ? pLabel.color : '';
               
@@ -279,6 +276,7 @@ export default function Home() {
               </div>
             )}
           </div>
+          )}
         </div>
       </div>
 
