@@ -299,19 +299,6 @@ export default function Home() {
             ) : (
               <span className="font-bold text-gray-800 bg-gray-100 px-3 py-1 rounded-md">All Products</span>
             )}
-            
-            {/* Load More Button */}
-            {visibleCount < displayedProducts.length && (
-              <div className="col-span-full py-8 flex justify-center">
-                <button 
-                  onClick={() => setVisibleCount(prev => prev + 50)}
-                  className="bg-white border-2 border-indigo-200 text-indigo-700 hover:bg-indigo-50 font-bold py-2.5 px-8 rounded-full shadow-sm transition flex items-center gap-2"
-                >
-                  Load More Products ({displayedProducts.length - visibleCount} remaining)
-                </button>
-              </div>
-            )}
-
           </div>
         </div>
         
