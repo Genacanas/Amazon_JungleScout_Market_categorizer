@@ -286,7 +286,9 @@ export default function Home() {
                   className="text-sm border border-gray-300 rounded-lg px-3 py-1.5 bg-white text-gray-700 font-medium shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 cursor-pointer"
                 >
                   {runs.map((r: any) => (
-                    <option key={r.id} value={r.id}>{r.run_name}</option>
+                    <option key={r.id} value={r.id}>
+                      {r.keywords && r.keywords.length > 0 ? r.keywords.join(' + ') : r.run_name}
+                    </option>
                   ))}
                 </select>
               )}
