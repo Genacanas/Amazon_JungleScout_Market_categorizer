@@ -408,8 +408,15 @@ export default function Home() {
                   ) : (
                     <ImageIcon className="text-gray-300 w-10 h-10" />
                   )}
-                  {p.label_id && (
-                    <div className="absolute top-2 right-2 bg-green-500 w-4 h-4 rounded-full border-2 border-white shadow-md"></div>
+                  {p.label_id ? (
+                    <div className="absolute top-2 right-2 bg-white/95 backdrop-blur px-2.5 py-1 rounded-full border border-gray-200 shadow-sm flex items-center gap-1.5 max-w-[130px] pointer-events-none z-10">
+                      <div className="w-2.5 h-2.5 rounded-full shrink-0 shadow-inner" style={{ backgroundColor: pLabel?.color || '#ccc' }}></div>
+                      <span className="text-[10px] font-bold text-gray-700 truncate" title={pLabel?.name}>{pLabel?.name || 'Unknown'}</span>
+                    </div>
+                  ) : (
+                    <div className="absolute top-2 right-2 bg-amber-50/95 backdrop-blur px-2.5 py-1 rounded-full border border-amber-200 shadow-sm flex items-center max-w-[130px] pointer-events-none z-10">
+                      <span className="text-[10px] font-bold text-amber-700 truncate">Unassigned</span>
+                    </div>
                   )}
                 </div>
                 <div className="text-xs text-gray-500 mb-1 flex justify-between pointer-events-none">
