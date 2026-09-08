@@ -15,6 +15,7 @@ export default function Home() {
   const [activeFilterLabel, setActiveFilterLabel] = useState<string | null>(null); // null = show all
   const [draggedAsin, setDraggedAsin] = useState<string | null>(null);
   const [dragHoverLabelId, setDragHoverLabelId] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
   const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
@@ -25,20 +26,28 @@ export default function Home() {
         setRuns(data);
         if (data.length > 0) {
           setRunId(data[0].id);
+        } else {
+          setIsLoading(false); // No runs to load
         }
-      });
+      })
+      .catch(() => setIsLoading(false));
   }, []);
 
   useEffect(() => {
     if (!runId) return;
     
-    fetch(`${API_URL}/runs/${runId}/products`)
-      .then(res => res.json())
-      .then(data => setProducts(data));
-      
-    fetch(`${API_URL}/runs/${runId}/labels`)
-      .then(res => res.json())
-      .then(data => setLabels(data));
+    setIsLoading(true);
+    Promise.all([
+      fetch(`${API_URL}/runs/${runId}/products`).then(res => res.json()),
+      fetch(`${API_URL}/runs/${runId}/labels`).then(res => res.json())
+    ]).then(([productsData, labelsData]) => {
+      setProducts(productsData);
+      setLabels(labelsData);
+      setIsLoading(false);
+    }).catch(err => {
+      console.error(err);
+      setIsLoading(false);
+    });
   }, [runId]);
 
   const createLabel = async () => {
@@ -110,6 +119,15 @@ export default function Home() {
     : products;
     
   const activeLabelObj = activeFilterLabel ? labels.find(l => l.id === activeFilterLabel) : null;
+
+  if (isLoading) {
+    return (
+      <div className="flex h-screen items-center justify-center bg-gray-50 flex-col gap-4">
+        <div className="w-12 h-12 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin"></div>
+        <p className="text-gray-500 font-medium">Cargando datos del mercado desde Neon DB...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="flex h-screen bg-gray-50 text-gray-900 font-sans">
