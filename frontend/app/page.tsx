@@ -190,13 +190,7 @@ export default function Home() {
 
   const uncategorizedCount = products.filter(p => !p.label_id).length;
   
-  // Filter products based on active label
-  const displayedProducts = activeFilterLabel === 'unassigned'
-    ? products.filter(p => !p.label_id)
-    : activeFilterLabel 
-      ? products.filter(p => p.label_id === activeFilterLabel)
-      : products;
-      
+
   const activeLabelObj = activeFilterLabel && activeFilterLabel !== 'unassigned' 
     ? labels.find(l => l.id === activeFilterLabel) 
     : null;
@@ -225,6 +219,23 @@ export default function Home() {
   // Sort by revenue descending
   chartData.sort((a, b) => b.revenue - a.revenue);
 
+  // FBA + Keyword filters
+  let displayedProducts = activeFilterLabel === 'unassigned'
+    ? products.filter(p => !p.label_id)
+    : activeFilterLabel
+      ? products.filter(p => p.label_id === activeFilterLabel)
+      : products;
+
+  if (fbaFilter) {
+    displayedProducts = displayedProducts.filter((p: any) => p.is_fba);
+  }
+  if (keywordFilter) {
+    displayedProducts = displayedProducts.filter((p: any) => p.found_for_keywords && p.found_for_keywords.includes(keywordFilter));
+  }
+
+  const availableKeywords: string[] = Array.from(
+    new Set(products.flatMap((p: any) => p.found_for_keywords || []))
+  ).filter(Boolean) as string[];
 
   return (
     <div className="flex h-screen bg-gray-50 text-gray-900 font-sans relative">
