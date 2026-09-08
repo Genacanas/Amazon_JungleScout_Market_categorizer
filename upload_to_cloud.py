@@ -25,10 +25,17 @@ def upload_run(run_folder: Path):
             pd_data = json.load(f)
         with open(run_folder / "3_junglescout.json", "r", encoding="utf-8") as f:
             js_data = json.load(f)
-        with open(run_folder / "4_product_reviews.json", "r", encoding="utf-8") as f:
-            pr_data = json.load(f)
-        with open(run_folder / "5_normalized_products.json", "r", encoding="utf-8") as f:
-            norm_data = json.load(f)
+        try:
+            with open(run_folder / "4_product_reviews.json", "r", encoding="utf-8") as f:
+                pr_data = json.load(f)
+        except:
+            pr_data = {}
+            
+        try:
+            with open(run_folder / "5_normalized_products.json", "r", encoding="utf-8") as f:
+                norm_data = json.load(f)
+        except:
+            norm_data = {}
     except Exception as e:
         print(f"Error loading local files: {e}")
         return

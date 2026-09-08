@@ -272,35 +272,63 @@ export default function Home() {
             </div>
           </div>
           
-          {/* Breadcrumb / Current View Indicator */}
-          <div className="mt-4 flex items-center gap-3 bg-white p-3 rounded-lg border border-gray-200 shadow-sm">
-            <span className="text-sm font-semibold text-gray-500 uppercase tracking-wider">Current View:</span>
-            {activeFilterLabel === 'unassigned' ? (
-              <div className="flex items-center gap-2">
-                <span className="font-bold text-amber-800 bg-amber-100 px-3 py-1 rounded-md border border-amber-200">Unassigned Products Only</span>
-                <button 
-                  onClick={() => setActiveFilterLabel(null)}
-                  className="text-xs bg-gray-200 hover:bg-gray-300 text-gray-700 px-3 py-1.5 rounded-md font-bold transition flex items-center gap-1"
-                >
-                  <X className="w-3 h-3" /> View All
-                </button>
+          {/* Breadcrumb / Current View & Filters */}
+          <div className="mt-4 flex flex-col gap-3 bg-white p-4 rounded-lg border border-gray-200 shadow-sm">
+            
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <span className="text-sm font-semibold text-gray-500 uppercase tracking-wider">Current View:</span>
+                {activeFilterLabel === 'unassigned' ? (
+                  <div className="flex items-center gap-2">
+                    <span className="font-bold text-amber-800 bg-amber-100 px-3 py-1 rounded-md border border-amber-200">Unassigned Only</span>
+                    <button onClick={() => setActiveFilterLabel(null)} className="text-xs bg-gray-200 hover:bg-gray-300 text-gray-700 px-3 py-1.5 rounded-md font-bold transition flex items-center gap-1">
+                      <X className="w-3 h-3" /> View All
+                    </button>
+                  </div>
+                ) : activeFilterLabel && activeLabelObj ? (
+                  <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 bg-indigo-50 px-3 py-1 rounded-md border border-indigo-100">
+                      <div className="w-3 h-3 rounded-full shadow-sm" style={{ backgroundColor: activeLabelObj.color }}></div>
+                      <span className="font-bold text-indigo-900">{activeLabelObj.name}</span>
+                    </div>
+                    <button onClick={() => setActiveFilterLabel(null)} className="text-xs bg-gray-200 hover:bg-gray-300 text-gray-700 px-3 py-1.5 rounded-md font-bold transition flex items-center gap-1">
+                      <X className="w-3 h-3" /> View All
+                    </button>
+                  </div>
+                ) : (
+                  <span className="font-bold text-gray-800 bg-gray-100 px-3 py-1 rounded-md border border-gray-200">All Products</span>
+                )}
               </div>
-            ) : activeFilterLabel && activeLabelObj ? (
-              <div className="flex items-center gap-2">
-                <div className="flex items-center gap-2 bg-indigo-50 px-3 py-1 rounded-md border border-indigo-100">
-                  <div className="w-3 h-3 rounded-full shadow-sm" style={{ backgroundColor: activeLabelObj.color }}></div>
-                  <span className="font-bold text-indigo-900">{activeLabelObj.name}</span>
-                </div>
-                <button 
-                  onClick={() => setActiveFilterLabel(null)}
-                  className="text-xs bg-gray-200 hover:bg-gray-300 text-gray-700 px-3 py-1.5 rounded-md font-bold transition flex items-center gap-1"
-                >
-                  <X className="w-3 h-3" /> View All
-                </button>
+              
+              <div className="flex items-center gap-4">
+                <label className="flex items-center gap-2 cursor-pointer bg-orange-50 px-3 py-1.5 rounded-lg border border-orange-200 hover:bg-orange-100 transition shadow-sm">
+                  <input type="checkbox" checked={fbaFilter} onChange={(e) => setFbaFilter(e.target.checked)} className="rounded text-orange-500 focus:ring-orange-500 w-4 h-4 cursor-pointer" />
+                  <span className="text-sm font-bold text-orange-800">FBA Only</span>
+                </label>
               </div>
-            ) : (
-              <span className="font-bold text-gray-800 bg-gray-100 px-3 py-1 rounded-md">All Products</span>
+            </div>
+
+            {availableKeywords.length > 0 && (
+              <div className="flex items-center gap-2 pt-3 border-t border-gray-100 overflow-x-auto pb-1">
+                <span className="text-xs font-bold text-gray-400 tracking-wider mr-2 whitespace-nowrap">KEYWORDS:</span>
+                <button
+                  onClick={() => setKeywordFilter(null)}
+                  className={`whitespace-nowrap px-3 py-1 rounded-full text-xs font-bold border transition ${!keywordFilter ? 'bg-gray-800 text-white border-gray-800 shadow-md' : 'bg-white text-gray-600 border-gray-300 hover:bg-gray-50'}`}
+                >
+                  All
+                </button>
+                {availableKeywords.map((kw: any) => (
+                  <button
+                    key={kw}
+                    onClick={() => setKeywordFilter(kw)}
+                    className={`whitespace-nowrap px-3 py-1 rounded-full text-xs font-bold border transition ${keywordFilter === kw ? 'bg-blue-600 text-white border-blue-600 shadow-md' : 'bg-white text-gray-600 border-gray-300 hover:bg-gray-50'}`}
+                  >
+                    {kw}
+                  </button>
+                ))}
+              </div>
             )}
+
           </div>
         </div>
         
