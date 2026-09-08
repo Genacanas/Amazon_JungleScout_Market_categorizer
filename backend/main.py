@@ -1,4 +1,4 @@
-﻿from fastapi import FastAPI, Depends, HTTPException
+from fastapi import FastAPI, Depends, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from typing import List
@@ -44,7 +44,10 @@ def upload_run(run: schemas.RunCreate, db: Session = Depends(database.get_db)):
 
 @app.get("/runs/{run_id}/products", response_model=List[schemas.Product])
 def get_products(run_id: str, db: Session = Depends(database.get_db)):
-    return db.query(models.Product).filter(models.Product.run_id == run_id).all()
+    return db.query(models.Product).filter(
+        models.Product.run_id == run_id,
+        models.Product.is_fba == True
+    ).all()
 
 @app.get("/runs/{run_id}/labels", response_model=List[schemas.Label])
 def get_labels(run_id: str, db: Session = Depends(database.get_db)):

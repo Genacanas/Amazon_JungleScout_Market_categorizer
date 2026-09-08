@@ -20,12 +20,11 @@ export default function Home() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [bulkAssignTarget, setBulkAssignTarget] = useState<string | null>(null);
   const [visibleCount, setVisibleCount] = useState(50);
-  const [fbaFilter, setFbaFilter] = useState(false);
   const [keywordFilter, setKeywordFilter] = useState<string | null>(null);
 
   useEffect(() => {
     setVisibleCount(50);
-  }, [activeFilterLabel, fbaFilter, keywordFilter]);
+  }, [activeFilterLabel, keywordFilter]);
 
 
   const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
@@ -219,16 +218,13 @@ export default function Home() {
   // Sort by revenue descending
   chartData.sort((a, b) => b.revenue - a.revenue);
 
-  // FBA + Keyword filters
+  // Keyword filters
   let displayedProducts = activeFilterLabel === 'unassigned'
     ? products.filter(p => !p.label_id)
     : activeFilterLabel
       ? products.filter(p => p.label_id === activeFilterLabel)
       : products;
 
-  if (fbaFilter) {
-    displayedProducts = displayedProducts.filter((p: any) => p.is_fba);
-  }
   if (keywordFilter) {
     displayedProducts = displayedProducts.filter((p: any) => p.found_for_keywords && p.found_for_keywords.includes(keywordFilter));
   }
@@ -280,7 +276,6 @@ export default function Home() {
                   onChange={(e) => {
                     setRunId(e.target.value);
                     setActiveFilterLabel(null);
-                    setFbaFilter(false);
                     setKeywordFilter(null);
                   }}
                   className="text-sm border border-gray-300 rounded-lg px-3 py-1.5 bg-white text-gray-700 font-medium shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 cursor-pointer"
@@ -329,13 +324,6 @@ export default function Home() {
                 ) : (
                   <span className="font-bold text-gray-800 bg-gray-100 px-3 py-1 rounded-md border border-gray-200">All Products</span>
                 )}
-              </div>
-              
-              <div className="flex items-center gap-4">
-                <label className="flex items-center gap-2 cursor-pointer bg-orange-50 px-3 py-1.5 rounded-lg border border-orange-200 hover:bg-orange-100 transition shadow-sm">
-                  <input type="checkbox" checked={fbaFilter} onChange={(e) => setFbaFilter(e.target.checked)} className="rounded text-orange-500 focus:ring-orange-500 w-4 h-4 cursor-pointer" />
-                  <span className="text-sm font-bold text-orange-800">FBA Only</span>
-                </label>
               </div>
             </div>
 
