@@ -74,7 +74,7 @@ export default function Home() {
         throw new Error("Server rejected label creation");
       }
     } catch (err) {
-      alert("Error creando la etiqueta. Revise su conexión.");
+      alert("Error creating label. Check your connection.");
       setLabels(prev => prev.filter(l => l.id !== tempId));
     }
   };
@@ -99,14 +99,14 @@ export default function Home() {
       if (!res.ok) throw new Error("Error en el servidor al asignar.");
     } catch (err) {
       console.error(err);
-      alert("⚠️ Hubo un error de conexión al guardar. Se revertirá el cambio.");
+      alert("⚠️ Connection error while saving. Reverting change.");
       setProducts(originalProducts); // Rollback
     }
   };
   
   const handleQuickUnassign = (e: React.MouseEvent, asin: string) => {
     e.stopPropagation(); // Prevent opening modal
-    if (window.confirm("¿Estás seguro que deseas desasignar este producto de su etiqueta?")) {
+    if (window.confirm("Are you sure you want to unassign this product?")) {
       assignLabel(asin, null);
     }
   };
@@ -124,7 +124,7 @@ export default function Home() {
     return (
       <div className="flex h-screen items-center justify-center bg-gray-50 flex-col gap-4">
         <div className="w-12 h-12 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin"></div>
-        <p className="text-gray-500 font-medium">Cargando datos del mercado desde Neon DB...</p>
+        <p className="text-gray-500 font-medium">Loading market data from Neon DB...</p>
       </div>
     );
   }
@@ -137,20 +137,20 @@ export default function Home() {
         <div className="p-4 border-b flex flex-col justify-center bg-gray-50">
           <div className="flex justify-between items-center w-full">
             <h1 className="text-xl font-bold flex items-center gap-2">
-              <Tag className="text-indigo-600" /> Categorizador
+              <Tag className="text-indigo-600" /> Market Categorizer
             </h1>
             <div 
               onClick={() => setActiveFilterLabel(null)}
               className="cursor-pointer bg-amber-100 text-amber-800 hover:bg-amber-200 px-3 py-1 rounded-full text-sm font-semibold transition"
-              title="Click para ver productos sin categorizar"
+              title="Click to view unassigned products"
             >
-              {uncategorizedCount} Sin Asignar
+              {uncategorizedCount} Unassigned
             </div>
           </div>
           
           {/* Breadcrumb / Current View Indicator */}
           <div className="mt-4 flex items-center gap-3 bg-white p-3 rounded-lg border border-gray-200 shadow-sm">
-            <span className="text-sm font-semibold text-gray-500 uppercase tracking-wider">Vista Actual:</span>
+            <span className="text-sm font-semibold text-gray-500 uppercase tracking-wider">Current View:</span>
             {activeFilterLabel && activeLabelObj ? (
               <div className="flex items-center gap-2">
                 <div className="flex items-center gap-2 bg-indigo-50 px-3 py-1 rounded-md border border-indigo-100">
@@ -161,11 +161,11 @@ export default function Home() {
                   onClick={() => setActiveFilterLabel(null)}
                   className="text-xs bg-gray-200 hover:bg-gray-300 text-gray-700 px-3 py-1.5 rounded-md font-bold transition flex items-center gap-1"
                 >
-                  <X className="w-3 h-3" /> Ver Todos
+                  <X className="w-3 h-3" /> View All
                 </button>
               </div>
             ) : (
-              <span className="font-bold text-gray-800 bg-gray-100 px-3 py-1 rounded-md">Todos los Productos</span>
+              <span className="font-bold text-gray-800 bg-gray-100 px-3 py-1 rounded-md">All Products</span>
             )}
           </div>
         </div>
@@ -225,7 +225,7 @@ export default function Home() {
                   <button
                     onClick={(e) => handleQuickUnassign(e, p.asin)}
                     className="absolute top-2 left-2 bg-red-100 hover:bg-red-500 text-red-600 hover:text-white p-1.5 rounded-md opacity-0 group-hover:opacity-100 transition-opacity z-10 shadow-sm border border-red-200 hover:border-red-600"
-                    title="Desasignar producto"
+                    title="Unassign product"
                   >
                     <X className="w-4 h-4" />
                   </button>
@@ -254,7 +254,7 @@ export default function Home() {
             ))}
             {displayedProducts.length === 0 && (
               <div className="col-span-full py-20 text-center text-gray-400 font-medium">
-                No hay productos en esta vista.
+                No products found in this view.
               </div>
             )}
           </div>
@@ -265,9 +265,9 @@ export default function Home() {
       <div className="w-1/3 bg-gray-50 flex flex-col h-full border-l border-gray-200 shadow-xl z-10">
         <div className="p-4 border-b bg-white">
           <h2 className="font-bold text-gray-800 mb-3 flex justify-between items-center text-lg">
-            Etiquetas
+            Labels
             {activeFilterLabel && (
-              <button onClick={() => setActiveFilterLabel(null)} className="text-xs text-indigo-600 hover:underline font-semibold bg-indigo-50 px-2 py-1 rounded">Ver Todas</button>
+              <button onClick={() => setActiveFilterLabel(null)} className="text-xs text-indigo-600 hover:underline font-semibold bg-indigo-50 px-2 py-1 rounded">View All</button>
             )}
           </h2>
           <div className="flex gap-2">
@@ -275,7 +275,7 @@ export default function Home() {
               type="text" 
               value={newLabelName}
               onChange={e => setNewLabelName(e.target.value)}
-              placeholder="Ej: Basureros de Cocina"
+              placeholder="e.g. Kitchen Bins"
               className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
               onKeyDown={e => e.key === 'Enter' && createLabel()}
             />
@@ -326,7 +326,7 @@ export default function Home() {
           
           {labels.length === 0 && (
             <div className="text-center text-gray-400 text-sm mt-10 border-2 border-dashed border-gray-300 rounded-xl p-6 bg-gray-50/50">
-              Aún no hay etiquetas creadas.
+              No labels created yet.
             </div>
           )}
           
@@ -349,7 +349,7 @@ export default function Home() {
             }}
           >
             {draggedAsin && (
-              <span className="pointer-events-none">❌ Soltar aquí para Desasignar</span>
+              <span className="pointer-events-none">❌ Drop here to Unassign</span>
             )}
           </div>
         </div>
