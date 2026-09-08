@@ -153,6 +153,38 @@ export default function Home() {
         </div>
         
         <div className="flex-1 overflow-y-auto p-4 bg-gray-100/50">
+          
+          {/* Analytics Dashboard */}
+          <div className="mb-6 bg-white p-4 rounded-xl border border-gray-200 shadow-sm flex items-center justify-between">
+            <div>
+              <h2 className="text-lg font-bold text-gray-800">
+                {activeFilterLabel ? activeLabelObj?.name : 'Market Overview'}
+              </h2>
+              <p className="text-xs text-gray-500">Real-time statistics for {displayedProducts.length} items</p>
+            </div>
+            
+            <div className="flex gap-6">
+              <div className="bg-gray-50 px-4 py-2 rounded-lg border border-gray-100 text-center">
+                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Total Revenue</p>
+                <p className="text-lg font-bold text-indigo-700">
+                  €{displayedProducts.reduce((sum, p) => sum + (p.est_revenue || 0), 0).toLocaleString(undefined, {maximumFractionDigits: 0})}
+                </p>
+              </div>
+              <div className="bg-gray-50 px-4 py-2 rounded-lg border border-gray-100 text-center">
+                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Avg Price</p>
+                <p className="text-lg font-bold text-emerald-600">
+                  €{(displayedProducts.length > 0 ? displayedProducts.reduce((sum, p) => sum + (p.price || 0), 0) / displayedProducts.length : 0).toFixed(2)}
+                </p>
+              </div>
+              <div className="bg-gray-50 px-4 py-2 rounded-lg border border-gray-100 text-center">
+                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Total Reviews</p>
+                <p className="text-lg font-bold text-amber-600">
+                  {displayedProducts.reduce((sum, p) => sum + (p.num_reviews || 0), 0).toLocaleString()}
+                </p>
+              </div>
+            </div>
+          </div>
+
           <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
             {displayedProducts.map(p => (
               <div 
@@ -315,7 +347,6 @@ export default function Home() {
           </button>
         </div>
         */}
-      </div>
 
       {/* Product Detail Modal */}
       {selectedProduct && (
