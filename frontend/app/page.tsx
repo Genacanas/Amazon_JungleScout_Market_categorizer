@@ -270,9 +270,27 @@ export default function Home() {
       <div className="w-2/3 border-r bg-white flex flex-col h-full">
         <div className="p-4 border-b flex flex-col justify-center bg-gray-50">
           <div className="flex justify-between items-center w-full">
-            <h1 className="text-xl font-bold flex items-center gap-2">
-              <Tag className="text-indigo-600" /> Market Categorizer
-            </h1>
+            <div className="flex items-center gap-3">
+              <h1 className="text-xl font-bold flex items-center gap-2">
+                <Tag className="text-indigo-600" /> Market Categorizer
+              </h1>
+              {runs.length > 1 && (
+                <select
+                  value={runId || ''}
+                  onChange={(e) => {
+                    setRunId(e.target.value);
+                    setActiveFilterLabel(null);
+                    setFbaFilter(false);
+                    setKeywordFilter(null);
+                  }}
+                  className="text-sm border border-gray-300 rounded-lg px-3 py-1.5 bg-white text-gray-700 font-medium shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 cursor-pointer"
+                >
+                  {runs.map((r: any) => (
+                    <option key={r.id} value={r.id}>{r.run_name}</option>
+                  ))}
+                </select>
+              )}
+            </div>
             <div 
               onClick={() => setActiveFilterLabel(activeFilterLabel === 'unassigned' ? null : 'unassigned')}
               className={`cursor-pointer px-3 py-1 rounded-full text-sm font-semibold transition border-2 
