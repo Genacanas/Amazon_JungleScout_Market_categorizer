@@ -114,11 +114,15 @@ export default function Home() {
   const uncategorizedCount = products.filter(p => !p.label_id).length;
   
   // Filter products based on active label
-  const displayedProducts = activeFilterLabel 
-    ? products.filter(p => p.label_id === activeFilterLabel)
-    : products;
-    
-  const activeLabelObj = activeFilterLabel ? labels.find(l => l.id === activeFilterLabel) : null;
+  const displayedProducts = activeFilterLabel === 'unassigned'
+    ? products.filter(p => !p.label_id)
+    : activeFilterLabel 
+      ? products.filter(p => p.label_id === activeFilterLabel)
+      : products;
+      
+  const activeLabelObj = activeFilterLabel && activeFilterLabel !== 'unassigned' 
+    ? labels.find(l => l.id === activeFilterLabel) 
+    : null;
 
   if (isLoading) {
     return (
@@ -140,8 +144,9 @@ export default function Home() {
               <Tag className="text-indigo-600" /> Market Categorizer
             </h1>
             <div 
-              onClick={() => setActiveFilterLabel(null)}
-              className="cursor-pointer bg-amber-100 text-amber-800 hover:bg-amber-200 px-3 py-1 rounded-full text-sm font-semibold transition"
+              onClick={() => setActiveFilterLabel(activeFilterLabel === 'unassigned' ? null : 'unassigned')}
+              className={`cursor-pointer px-3 py-1 rounded-full text-sm font-semibold transition border-2 
+                ${activeFilterLabel === 'unassigned' ? 'bg-amber-500 text-white border-amber-600 shadow-md' : 'bg-amber-100 text-amber-800 border-transparent hover:bg-amber-200'}`}
               title="Click to view unassigned products"
             >
               {uncategorizedCount} Unassigned
@@ -151,7 +156,17 @@ export default function Home() {
           {/* Breadcrumb / Current View Indicator */}
           <div className="mt-4 flex items-center gap-3 bg-white p-3 rounded-lg border border-gray-200 shadow-sm">
             <span className="text-sm font-semibold text-gray-500 uppercase tracking-wider">Current View:</span>
-            {activeFilterLabel && activeLabelObj ? (
+            {activeFilterLabel === 'unassigned' ? (
+              <div className="flex items-center gap-2">
+                <span className="font-bold text-amber-800 bg-amber-100 px-3 py-1 rounded-md border border-amber-200">Unassigned Products Only</span>
+                <button 
+                  onClick={() => setActiveFilterLabel(null)}
+                  className="text-xs bg-gray-200 hover:bg-gray-300 text-gray-700 px-3 py-1.5 rounded-md font-bold transition flex items-center gap-1"
+                >
+                  <X className="w-3 h-3" /> View All
+                </button>
+              </div>
+            ) : activeFilterLabel && activeLabelObj ? (
               <div className="flex items-center gap-2">
                 <div className="flex items-center gap-2 bg-indigo-50 px-3 py-1 rounded-md border border-indigo-100">
                   <div className="w-3 h-3 rounded-full shadow-sm" style={{ backgroundColor: activeLabelObj.color }}></div>
@@ -176,7 +191,7 @@ export default function Home() {
           <div className="mb-6 bg-white p-4 rounded-xl border border-gray-200 shadow-sm flex items-center justify-between">
             <div>
               <h2 className="text-lg font-bold text-gray-800">
-                {activeFilterLabel ? activeLabelObj?.name : 'Market Overview'}
+                {activeFilterLabel === 'unassigned' ? 'Unassigned Products' : activeFilterLabel ? activeLabelObj?.name : 'Market Overview'}
               </h2>
               <p className="text-xs text-gray-500">Real-time statistics for {displayedProducts.length} items</p>
             </div>
@@ -204,7 +219,11 @@ export default function Home() {
           </div>
 
           <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
-            {displayedProducts.map(p => (
+            {displayedProducts.map(p => {
+              const pLabel = p.label_id ? labels.find(l => l.id === p.label_id) : null;
+              const borderColor = pLabel ? pLabel.color : '';
+              
+              return (
               <div 
                 key={p.asin} 
                 draggable
@@ -215,9 +234,10 @@ export default function Home() {
                 }}
                 onDragEnd={() => setDraggedAsin(null)}
                 onClick={() => setSelectedProduct(p)}
-                className={`group border rounded-xl p-3 cursor-grab active:cursor-grabbing hover:border-indigo-400 hover:shadow-md transition bg-white flex flex-col relative
+                style={{ borderColor: borderColor }}
+                className={`group border-2 rounded-xl p-3 cursor-grab active:cursor-grabbing hover:shadow-md transition bg-white flex flex-col relative
                   ${draggedAsin === p.asin ? 'opacity-50 ring-2 ring-indigo-500' : ''}
-                  ${!p.label_id ? 'border-amber-300 shadow-sm' : 'border-gray-200'}`}
+                  ${!p.label_id ? 'border-amber-300 border-dashed shadow-sm' : 'shadow'}`}
               >
                 
                 {/* Quick Unassign Button (Shows on Hover if labeled) */}
@@ -251,7 +271,8 @@ export default function Home() {
                   <span className="text-amber-500 flex items-center text-xs font-bold bg-amber-50 px-1 rounded"><Star className="w-3 h-3 mr-1 fill-current" /> {p.rating}</span>
                 </div>
               </div>
-            ))}
+            );
+          })}
             {displayedProducts.length === 0 && (
               <div className="col-span-full py-20 text-center text-gray-400 font-medium">
                 No products found in this view.
