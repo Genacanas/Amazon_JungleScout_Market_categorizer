@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Plus, Tag, ChevronRight, X, ImageIcon, Star, ShoppingCart } from "lucide-react";
+import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 
 export default function Home() {
   const [runs, setRuns] = useState<any[]>([]);
@@ -124,6 +125,30 @@ export default function Home() {
     ? labels.find(l => l.id === activeFilterLabel) 
     : null;
 
+  // Prepare Chart Data
+  const chartData = labels.map(l => {
+    const labelProducts = products.filter(p => p.label_id === l.id);
+    return {
+      name: l.name,
+      revenue: labelProducts.reduce((sum, p) => sum + (p.est_revenue || 0), 0),
+      avgPrice: labelProducts.length > 0 ? labelProducts.reduce((sum, p) => sum + (p.price || 0), 0) / labelProducts.length : 0,
+      color: l.color
+    };
+  }).filter(d => d.revenue > 0 || d.avgPrice > 0);
+
+  const unassignedProducts = products.filter(p => !p.label_id);
+  if (unassignedProducts.length > 0) {
+    chartData.push({
+      name: 'Unassigned',
+      revenue: unassignedProducts.reduce((sum, p) => sum + (p.est_revenue || 0), 0),
+      avgPrice: unassignedProducts.length > 0 ? unassignedProducts.reduce((sum, p) => sum + (p.price || 0), 0) / unassignedProducts.length : 0,
+      color: '#fbbf24' // amber-400
+    });
+  }
+
+  // Sort by revenue descending
+  chartData.sort((a, b) => b.revenue - a.revenue);
+
   return (
     <div className="flex h-screen bg-gray-50 text-gray-900 font-sans">
       
@@ -208,6 +233,40 @@ export default function Home() {
               </div>
             </div>
           </div>
+
+          {/* Charts (Only visible in Market Overview) */}
+          {!activeFilterLabel && chartData.length > 0 && !isLoading && (
+            <div className="grid grid-cols-2 gap-6 mb-6">
+              <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
+                <h3 className="text-sm font-bold text-gray-700 mb-4 text-center">Market Share by Revenue</h3>
+                <div className="h-56">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie data={chartData} dataKey="revenue" nameKey="name" cx="50%" cy="50%" innerRadius={50} outerRadius={80}>
+                        {chartData.map((entry, index) => <Cell key={`cell-${index}`} fill={entry.color} />)}
+                      </Pie>
+                      <Tooltip formatter={(value: any) => `€${Number(value).toLocaleString(undefined, {maximumFractionDigits: 0})}`} />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+              <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm flex flex-col">
+                <h3 className="text-sm font-bold text-gray-700 mb-4 text-center">Average Price per Category</h3>
+                <div className="h-56 flex-1 w-full">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={chartData} margin={{ top: 10, right: 10, left: 0, bottom: 40 }}>
+                      <XAxis dataKey="name" tick={{fontSize: 10}} interval={0} angle={-45} textAnchor="end" height={60} />
+                      <YAxis tick={{fontSize: 10}} width={40} />
+                      <Tooltip formatter={(value: any) => `€${Number(value).toFixed(2)}`} />
+                      <Bar dataKey="avgPrice" radius={[4, 4, 0, 0]}>
+                        {chartData.map((entry, index) => <Cell key={`cell-${index}`} fill={entry.color} />)}
+                      </Bar>
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+            </div>
+          )}
 
           {isLoading ? (
             <div className="flex items-center justify-center py-20 flex-col gap-4 h-64">
@@ -305,6 +364,38 @@ export default function Home() {
         </div>
 
         <div className="flex-1 overflow-y-auto p-4 space-y-3 relative">
+          
+          {/* Fake "Unassigned" Label */}
+          <div 
+            onClick={() => setActiveFilterLabel(activeFilterLabel === 'unassigned' ? null : 'unassigned')}
+            onDragEnter={() => setDragHoverLabelId('unassign')}
+            onDragLeave={() => setDragHoverLabelId(null)}
+            onDragOver={(e) => {
+              e.preventDefault();
+              if (dragHoverLabelId !== 'unassign') setDragHoverLabelId('unassign');
+            }}
+            onDrop={(e) => {
+              e.preventDefault();
+              setDragHoverLabelId(null);
+              const asin = e.dataTransfer.getData("text/plain");
+              if (asin) assignLabel(asin, null);
+            }}
+            className={`bg-amber-50 border-2 rounded-xl p-3 shadow-sm flex items-center justify-between cursor-pointer transition-all duration-200
+              ${activeFilterLabel === 'unassigned' ? 'border-amber-500 bg-amber-100 shadow-md transform scale-[1.02]' : 'border-amber-200'}
+              ${dragHoverLabelId === 'unassign' ? 'border-amber-400 bg-amber-200 scale-[1.05] shadow-lg ring-4 ring-amber-100' : 'hover:border-amber-300 hover:shadow-md'}
+            `}
+          >
+            <div className="flex items-center gap-3 pointer-events-none">
+              <div className="w-5 h-5 rounded-full shadow-sm border border-black/10 bg-amber-400 flex items-center justify-center text-white text-xs font-bold">!</div>
+              <span className={`text-sm ${activeFilterLabel === 'unassigned' ? 'font-bold text-amber-900' : 'font-bold text-amber-700'}`}>Unassigned</span>
+            </div>
+            <span className={`text-xs font-bold px-2.5 py-1 rounded-full pointer-events-none transition-colors ${activeFilterLabel === 'unassigned' || dragHoverLabelId === 'unassign' ? 'bg-amber-500 text-white shadow-sm' : 'bg-amber-200 text-amber-800'}`}>
+              {uncategorizedCount}
+            </span>
+          </div>
+          
+          <hr className="border-gray-200 my-2" />
+
           {labels.map(l => {
             const count = products.filter(p => p.label_id === l.id).length;
             const isActiveFilter = activeFilterLabel === l.id;
@@ -348,42 +439,8 @@ export default function Home() {
               No labels created yet.
             </div>
           )}
-          
-          {/* Unassigned Dropzone (only visible while dragging) */}
-          <div className={`mt-6 border-2 border-dashed rounded-xl p-4 flex justify-center items-center font-bold text-sm transition-all duration-300
-              ${draggedAsin ? 'opacity-100 h-16 border-red-400 bg-red-50 text-red-600 shadow-inner' : 'opacity-0 h-0 p-0 border-transparent overflow-hidden'}
-              ${dragHoverLabelId === 'unassign' ? 'scale-[1.05] bg-red-100 border-red-500 shadow-lg' : ''}
-            `}
-            onDragEnter={() => setDragHoverLabelId('unassign')}
-            onDragLeave={() => setDragHoverLabelId(null)}
-            onDragOver={(e) => {
-              e.preventDefault();
-              if (dragHoverLabelId !== 'unassign') setDragHoverLabelId('unassign');
-            }}
-            onDrop={(e) => {
-              e.preventDefault();
-              setDragHoverLabelId(null);
-              const asin = e.dataTransfer.getData("text/plain");
-              if (asin) assignLabel(asin, null);
-            }}
-          >
-            {draggedAsin && (
-              <span className="pointer-events-none">❌ Drop here to Unassign</span>
-            )}
-          </div>
         </div>
       </div>
-        
-        {/* 
-        <div className="p-4 border-t bg-white">
-          <button 
-            className="w-full bg-emerald-600 text-white font-bold py-3 rounded-lg hover:bg-emerald-700 transition shadow flex justify-center items-center gap-2"
-            onClick={() => alert("Market Report Generation (Fase 5 y 6) will be connected soon!")}
-          >
-            Generate Market Report <ChevronRight className="w-5 h-5" />
-          </button>
-        </div>
-        */}
 
       {/* Product Detail Modal */}
       {selectedProduct && (
