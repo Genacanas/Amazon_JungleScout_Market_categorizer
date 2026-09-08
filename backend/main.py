@@ -44,10 +44,12 @@ def upload_run(run: schemas.RunCreate, db: Session = Depends(database.get_db)):
 
 @app.get("/runs/{run_id}/products", response_model=List[schemas.Product])
 def get_products(run_id: str, db: Session = Depends(database.get_db)):
-    return db.query(models.Product).filter(
-        models.Product.run_id == run_id,
-        models.Product.is_fba == True
-    ).all()
+    products = db.query(models.Product).filter(models.Product.run_id == run_id).all()
+    # If the run has FBA data, filter out FBM. If it has no FBA data (legacy runs), show all.
+    has_fba = any(p.is_fba for p in products)
+    if has_fba:
+        return [p for p in products if p.is_fba]
+    return products
 
 @app.get("/runs/{run_id}/labels", response_model=List[schemas.Label])
 def get_labels(run_id: str, db: Session = Depends(database.get_db)):
