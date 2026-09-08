@@ -19,6 +19,12 @@ export default function Home() {
   const [isLoading, setIsLoading] = useState(true);
   const [isProcessing, setIsProcessing] = useState(false);
   const [bulkAssignTarget, setBulkAssignTarget] = useState<string | null>(null);
+  const [visibleCount, setVisibleCount] = useState(50);
+
+  useEffect(() => {
+    setVisibleCount(50);
+  }, [activeFilterLabel]);
+
 
   const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
@@ -109,6 +115,13 @@ export default function Home() {
       setProducts(originalProducts); // Rollback
     } finally {
       setIsProcessing(false);
+    }
+  };
+
+  const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
+    const bottom = e.currentTarget.scrollHeight - e.currentTarget.scrollTop <= e.currentTarget.clientHeight + 500;
+    if (bottom) {
+      setVisibleCount(prev => Math.min(prev + 50, products.length));
     }
   };
 
@@ -289,7 +302,7 @@ export default function Home() {
           </div>
         </div>
         
-        <div className="flex-1 overflow-y-auto p-4 bg-gray-100/50">
+        <div className="flex-1 overflow-y-auto p-4 bg-gray-100/50" onScroll={handleScroll}>
           
           {/* Analytics Dashboard */}
           <div className="mb-6 bg-white p-4 rounded-xl border border-gray-200 shadow-sm flex items-center justify-between">
@@ -363,7 +376,7 @@ export default function Home() {
             </div>
           ) : (
             <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
-              {displayedProducts.map(p => {
+              {displayedProducts.slice(0, visibleCount).map(p => {
               const pLabel = p.label_id ? labels.find(l => l.id === p.label_id) : null;
               const borderColor = pLabel ? pLabel.color : '';
               
