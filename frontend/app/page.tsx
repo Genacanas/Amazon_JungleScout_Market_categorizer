@@ -228,6 +228,7 @@ export default function Home() {
           )}
         </div>
         
+        {/* 
         <div className="p-4 border-t bg-white">
           <button 
             className="w-full bg-emerald-600 text-white font-bold py-3 rounded-lg hover:bg-emerald-700 transition shadow flex justify-center items-center gap-2"
@@ -236,6 +237,7 @@ export default function Home() {
             Generate Market Report <ChevronRight className="w-5 h-5" />
           </button>
         </div>
+        */}
       </div>
 
       {/* Product Detail Modal */}
