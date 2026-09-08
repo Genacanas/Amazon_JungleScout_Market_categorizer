@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Plus, Tag, ChevronRight, X, ImageIcon, Star, ShoppingCart, Trash2, Edit2, Loader2 } from "lucide-react";
+import { Plus, Tag, ChevronRight, X, ImageIcon, Star, ShoppingCart, Trash2, Edit2, Loader2, MousePointer2 } from "lucide-react";
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 
 export default function Home() {
@@ -18,6 +18,7 @@ export default function Home() {
   const [dragHoverLabelId, setDragHoverLabelId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [bulkAssignTarget, setBulkAssignTarget] = useState<string | null>(null);
 
   const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
@@ -213,12 +214,30 @@ export default function Home() {
   return (
     <div className="flex h-screen bg-gray-50 text-gray-900 font-sans relative">
       
+
       {/* Global Processing Overlay */}
       {isProcessing && (
         <div className="absolute top-4 right-1/2 translate-x-1/2 bg-indigo-600 text-white px-4 py-2 rounded-full shadow-lg flex items-center gap-2 z-50 animate-pulse font-medium text-sm">
           <Loader2 className="w-4 h-4 animate-spin" /> Saving changes...
         </div>
       )}
+
+      {/* Bulk Assign Banner */}
+      {bulkAssignTarget && (
+        <div className="absolute bottom-6 left-1/2 -translate-x-1/2 bg-indigo-900 text-white px-6 py-3 rounded-full shadow-2xl flex items-center gap-4 z-50 border-4 border-indigo-500 animate-bounce">
+          <MousePointer2 className="w-5 h-5 text-indigo-300" />
+          <span className="font-bold">
+            Bulk Assign Mode: Click products to assign them to "{bulkAssignTarget === 'unassign' ? 'Unassigned' : labels.find(l => l.id === bulkAssignTarget)?.name}"
+          </span>
+          <button 
+            onClick={() => setBulkAssignTarget(null)}
+            className="bg-white text-indigo-900 px-3 py-1 rounded-full text-xs font-bold hover:bg-indigo-100 transition"
+          >
+            Exit Mode
+          </button>
+        </div>
+      )}
+
 
       
       {/* Left Panel: Products */}
@@ -358,9 +377,16 @@ export default function Home() {
                   e.dataTransfer.effectAllowed = "move";
                 }}
                 onDragEnd={() => setDraggedAsin(null)}
-                onClick={() => setSelectedProduct(p)}
+                onClick={() => {
+                  if (bulkAssignTarget) {
+                    assignLabel(p.asin, bulkAssignTarget === 'unassign' ? null : bulkAssignTarget);
+                  } else {
+                    setSelectedProduct(p);
+                  }
+                }}
                 style={{ borderColor: borderColor }}
-                className={`group border-2 rounded-xl p-3 cursor-grab active:cursor-grabbing hover:shadow-md transition bg-white flex flex-col relative
+                className={`group border-2 rounded-xl p-3 transition bg-white flex flex-col relative
+                  ${bulkAssignTarget ? 'cursor-crosshair hover:ring-4 hover:ring-indigo-300' : 'cursor-grab active:cursor-grabbing hover:shadow-md'}
                   ${draggedAsin === p.asin ? 'opacity-50 ring-2 ring-indigo-500' : ''}
                   ${!p.label_id ? 'border-amber-300 border-dashed shadow-sm' : 'shadow'}`}
               >
@@ -449,7 +475,7 @@ export default function Home() {
               const asin = e.dataTransfer.getData("text/plain");
               if (asin) assignLabel(asin, null);
             }}
-            className={`bg-amber-50 border-2 rounded-xl p-3 shadow-sm flex items-center justify-between cursor-pointer transition-all duration-200
+            className={`group bg-amber-50 border-2 rounded-xl p-3 shadow-sm flex items-center justify-between cursor-pointer transition-all duration-200
               ${activeFilterLabel === 'unassigned' ? 'border-amber-500 bg-amber-100 shadow-md transform scale-[1.02]' : 'border-amber-200'}
               ${dragHoverLabelId === 'unassign' ? 'border-amber-400 bg-amber-200 scale-[1.05] shadow-lg ring-4 ring-amber-100' : 'hover:border-amber-300 hover:shadow-md'}
             `}
@@ -458,9 +484,18 @@ export default function Home() {
               <div className="w-5 h-5 rounded-full shadow-sm border border-black/10 bg-amber-400 flex items-center justify-center text-white text-xs font-bold">!</div>
               <span className={`text-sm ${activeFilterLabel === 'unassigned' ? 'font-bold text-amber-900' : 'font-bold text-amber-700'}`}>Unassigned</span>
             </div>
-            <span className={`text-xs font-bold px-2.5 py-1 rounded-full pointer-events-none transition-colors ${activeFilterLabel === 'unassigned' || dragHoverLabelId === 'unassign' ? 'bg-amber-500 text-white shadow-sm' : 'bg-amber-200 text-amber-800'}`}>
-              {uncategorizedCount}
-            </span>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={(e) => { e.stopPropagation(); setBulkAssignTarget(bulkAssignTarget === 'unassign' ? null : 'unassign'); }}
+                className={`transition-opacity p-1.5 rounded-md ${bulkAssignTarget === 'unassign' ? 'bg-amber-500 text-white' : 'opacity-0 group-hover:opacity-100 text-amber-500 hover:bg-amber-200'}`}
+                title="Bulk Assign Mode"
+              >
+                <MousePointer2 className="w-4 h-4" />
+              </button>
+              <span className={`text-xs font-bold px-2.5 py-1 rounded-full pointer-events-none transition-colors ${activeFilterLabel === 'unassigned' || dragHoverLabelId === 'unassign' ? 'bg-amber-500 text-white shadow-sm' : 'bg-amber-200 text-amber-800'}`}>
+                {uncategorizedCount}
+              </span>
+            </div>
           </div>
           
           <hr className="border-gray-200 my-2" />
@@ -498,6 +533,13 @@ export default function Home() {
                 </div>
 
                 <div className="flex items-center gap-2">
+                  <button
+                    onClick={(e) => { e.stopPropagation(); setBulkAssignTarget(bulkAssignTarget === l.id ? null : l.id); }}
+                    className={`transition-opacity p-1.5 rounded-md ${bulkAssignTarget === l.id ? 'bg-indigo-500 text-white' : 'opacity-0 group-hover:opacity-100 text-indigo-400 hover:text-white hover:bg-indigo-400'}`}
+                    title="Bulk Assign Mode"
+                  >
+                    <MousePointer2 className="w-4 h-4" />
+                  </button>
                   <button
                     onClick={(e) => editLabel(e, l.id, l.name)}
                     className="opacity-0 group-hover:opacity-100 transition-opacity p-1.5 text-indigo-400 hover:text-white hover:bg-indigo-500 rounded-md"
