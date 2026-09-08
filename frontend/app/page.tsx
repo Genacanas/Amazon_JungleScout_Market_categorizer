@@ -14,6 +14,7 @@ export default function Home() {
   const [selectedProduct, setSelectedProduct] = useState<any | null>(null);
   const [activeFilterLabel, setActiveFilterLabel] = useState<string | null>(null); // null = show all
   const [draggedAsin, setDraggedAsin] = useState<string | null>(null);
+  const [dragHoverLabelId, setDragHoverLabelId] = useState<string | null>(null);
 
   const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
@@ -43,32 +44,62 @@ export default function Home() {
   const createLabel = async () => {
     if (!newLabelName.trim() || !runId) return;
     
-    const res = await fetch(`${API_URL}/runs/${runId}/labels`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name: newLabelName, color: "#" + Math.floor(Math.random()*16777215).toString(16) })
-    });
+    // Optimistic UI for label creation
+    const tempId = "temp-" + Date.now();
+    const tempColor = "#" + Math.floor(Math.random()*16777215).toString(16);
+    const newLabelObj = { id: tempId, name: newLabelName, color: tempColor, run_id: runId };
     
-    if (res.ok) {
-      const newLabel = await res.json();
-      setLabels([...labels, newLabel]);
-      setNewLabelName("");
+    setLabels([...labels, newLabelObj]);
+    setNewLabelName("");
+    
+    try {
+      const res = await fetch(`${API_URL}/runs/${runId}/labels`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: newLabelName, color: tempColor })
+      });
+      if (res.ok) {
+        const dbLabel = await res.json();
+        setLabels(prev => prev.map(l => l.id === tempId ? dbLabel : l));
+      } else {
+        throw new Error("Server rejected label creation");
+      }
+    } catch (err) {
+      alert("Error creando la etiqueta. Revise su conexión.");
+      setLabels(prev => prev.filter(l => l.id !== tempId));
     }
   };
 
   const assignLabel = async (asin: string, label_id: string | null) => {
-    // Optimistic UI update for snappy feel
+    // Save original state for rollback
+    const originalProducts = [...products];
+    
+    // Optimistic UI update instantly
     setProducts(products.map(p => p.asin === asin ? { ...p, label_id } : p));
     if (selectedProduct && selectedProduct.asin === asin) {
-      setSelectedProduct(null);
+      setSelectedProduct(null); // Close modal if open
     }
     
     // Background fetch
-    fetch(`${API_URL}/categorizations`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ asin, label_id })
-    }).catch(err => console.error("Failed to categorize:", err));
+    try {
+      const res = await fetch(`${API_URL}/categorizations`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ asin, label_id })
+      });
+      if (!res.ok) throw new Error("Error en el servidor al asignar.");
+    } catch (err) {
+      console.error(err);
+      alert("⚠️ Hubo un error de conexión al guardar. Se revertirá el cambio.");
+      setProducts(originalProducts); // Rollback
+    }
+  };
+  
+  const handleQuickUnassign = (e: React.MouseEvent, asin: string) => {
+    e.stopPropagation(); // Prevent opening modal
+    if (window.confirm("¿Estás seguro que deseas desasignar este producto de su etiqueta?")) {
+      assignLabel(asin, null);
+    }
   };
 
   const uncategorizedCount = products.filter(p => !p.label_id).length;
@@ -77,32 +108,51 @@ export default function Home() {
   const displayedProducts = activeFilterLabel 
     ? products.filter(p => p.label_id === activeFilterLabel)
     : products;
+    
+  const activeLabelObj = activeFilterLabel ? labels.find(l => l.id === activeFilterLabel) : null;
 
   return (
     <div className="flex h-screen bg-gray-50 text-gray-900 font-sans">
       
       {/* Left Panel: Products */}
       <div className="w-2/3 border-r bg-white flex flex-col h-full">
-        <div className="p-4 border-b flex justify-between items-center bg-gray-50">
-          <div>
-            <h1 className="text-xl font-bold flex items-center gap-2 cursor-pointer" onClick={() => setActiveFilterLabel(null)}>
-              <Tag className="text-indigo-600" /> Market Categorizer
+        <div className="p-4 border-b flex flex-col justify-center bg-gray-50">
+          <div className="flex justify-between items-center w-full">
+            <h1 className="text-xl font-bold flex items-center gap-2">
+              <Tag className="text-indigo-600" /> Categorizador
             </h1>
-            <p className="text-sm text-gray-500 mt-1">
-              Run: {runs.find(r => r.id === runId)?.run_name || "Loading..."} 
-              {activeFilterLabel && " (Filtered by Label)"}
-            </p>
+            <div 
+              onClick={() => setActiveFilterLabel(null)}
+              className="cursor-pointer bg-amber-100 text-amber-800 hover:bg-amber-200 px-3 py-1 rounded-full text-sm font-semibold transition"
+              title="Click para ver productos sin categorizar"
+            >
+              {uncategorizedCount} Sin Asignar
+            </div>
           </div>
-          <div 
-            onClick={() => setActiveFilterLabel(null)}
-            className="cursor-pointer bg-indigo-100 text-indigo-800 hover:bg-indigo-200 px-3 py-1 rounded-full text-sm font-semibold transition"
-            title="Click to show all products"
-          >
-            {uncategorizedCount} Uncategorized
+          
+          {/* Breadcrumb / Current View Indicator */}
+          <div className="mt-4 flex items-center gap-3 bg-white p-3 rounded-lg border border-gray-200 shadow-sm">
+            <span className="text-sm font-semibold text-gray-500 uppercase tracking-wider">Vista Actual:</span>
+            {activeFilterLabel && activeLabelObj ? (
+              <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 bg-indigo-50 px-3 py-1 rounded-md border border-indigo-100">
+                  <div className="w-3 h-3 rounded-full shadow-sm" style={{ backgroundColor: activeLabelObj.color }}></div>
+                  <span className="font-bold text-indigo-900">{activeLabelObj.name}</span>
+                </div>
+                <button 
+                  onClick={() => setActiveFilterLabel(null)}
+                  className="text-xs bg-gray-200 hover:bg-gray-300 text-gray-700 px-3 py-1.5 rounded-md font-bold transition flex items-center gap-1"
+                >
+                  <X className="w-3 h-3" /> Ver Todos
+                </button>
+              </div>
+            ) : (
+              <span className="font-bold text-gray-800 bg-gray-100 px-3 py-1 rounded-md">Todos los Productos</span>
+            )}
           </div>
         </div>
         
-        <div className="flex-1 overflow-y-auto p-4">
+        <div className="flex-1 overflow-y-auto p-4 bg-gray-100/50">
           <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
             {displayedProducts.map(p => (
               <div 
@@ -115,10 +165,22 @@ export default function Home() {
                 }}
                 onDragEnd={() => setDraggedAsin(null)}
                 onClick={() => setSelectedProduct(p)}
-                className={`border rounded-xl p-3 cursor-grab active:cursor-grabbing hover:border-indigo-400 hover:shadow-md transition bg-white flex flex-col 
+                className={`group border rounded-xl p-3 cursor-grab active:cursor-grabbing hover:border-indigo-400 hover:shadow-md transition bg-white flex flex-col relative
                   ${draggedAsin === p.asin ? 'opacity-50 ring-2 ring-indigo-500' : ''}
-                  ${!p.label_id ? 'border-amber-300' : 'border-gray-200'}`}
+                  ${!p.label_id ? 'border-amber-300 shadow-sm' : 'border-gray-200'}`}
               >
+                
+                {/* Quick Unassign Button (Shows on Hover if labeled) */}
+                {p.label_id && (
+                  <button
+                    onClick={(e) => handleQuickUnassign(e, p.asin)}
+                    className="absolute top-2 left-2 bg-red-100 hover:bg-red-500 text-red-600 hover:text-white p-1.5 rounded-md opacity-0 group-hover:opacity-100 transition-opacity z-10 shadow-sm border border-red-200 hover:border-red-600"
+                    title="Desasignar producto"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                )}
+
                 <div className="h-32 mb-2 flex items-center justify-center overflow-hidden rounded bg-gray-50 relative pointer-events-none">
                   {p.photos && p.photos.length > 0 ? (
                     <img src={p.photos[0]} alt="product" className="object-contain h-full w-full mix-blend-multiply" />
@@ -126,23 +188,23 @@ export default function Home() {
                     <ImageIcon className="text-gray-300 w-10 h-10" />
                   )}
                   {p.label_id && (
-                    <div className="absolute top-1 right-1 bg-green-500 w-3 h-3 rounded-full border-2 border-white shadow-sm"></div>
+                    <div className="absolute top-2 right-2 bg-green-500 w-4 h-4 rounded-full border-2 border-white shadow-md"></div>
                   )}
                 </div>
                 <div className="text-xs text-gray-500 mb-1 flex justify-between pointer-events-none">
-                  <span className="font-mono">{p.asin}</span>
+                  <span className="font-mono bg-gray-100 px-1 rounded">{p.asin}</span>
                   <span className="font-semibold text-gray-700 truncate max-w-[50%] text-right">{p.brand || 'No Brand'}</span>
                 </div>
-                <h3 className="text-sm font-medium line-clamp-2 leading-snug flex-1 pointer-events-none">{p.title}</h3>
+                <h3 className="text-sm font-medium line-clamp-2 leading-snug flex-1 pointer-events-none text-gray-800">{p.title}</h3>
                 <div className="mt-3 flex justify-between items-center text-sm border-t pt-2 pointer-events-none">
                   <span className="font-bold text-gray-900">€{p.price.toFixed(2)}</span>
-                  <span className="text-amber-500 flex items-center text-xs"><Star className="w-3 h-3 mr-1 fill-current" /> {p.rating}</span>
+                  <span className="text-amber-500 flex items-center text-xs font-bold bg-amber-50 px-1 rounded"><Star className="w-3 h-3 mr-1 fill-current" /> {p.rating}</span>
                 </div>
               </div>
             ))}
             {displayedProducts.length === 0 && (
-              <div className="col-span-full py-20 text-center text-gray-400">
-                No products found in this view.
+              <div className="col-span-full py-20 text-center text-gray-400 font-medium">
+                No hay productos en esta vista.
               </div>
             )}
           </div>
@@ -150,12 +212,12 @@ export default function Home() {
       </div>
 
       {/* Right Panel: Labels */}
-      <div className="w-1/3 bg-gray-50 flex flex-col h-full">
+      <div className="w-1/3 bg-gray-50 flex flex-col h-full border-l border-gray-200 shadow-xl z-10">
         <div className="p-4 border-b bg-white">
-          <h2 className="font-bold text-gray-800 mb-3 flex justify-between items-center">
-            Your Labels
+          <h2 className="font-bold text-gray-800 mb-3 flex justify-between items-center text-lg">
+            Etiquetas
             {activeFilterLabel && (
-              <button onClick={() => setActiveFilterLabel(null)} className="text-xs text-indigo-600 hover:underline">Show All</button>
+              <button onClick={() => setActiveFilterLabel(null)} className="text-xs text-indigo-600 hover:underline font-semibold bg-indigo-50 px-2 py-1 rounded">Ver Todas</button>
             )}
           </h2>
           <div className="flex gap-2">
@@ -163,70 +225,85 @@ export default function Home() {
               type="text" 
               value={newLabelName}
               onChange={e => setNewLabelName(e.target.value)}
-              placeholder="e.g. Kitchen Bins"
-              className="flex-1 border rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              placeholder="Ej: Basureros de Cocina"
+              className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
               onKeyDown={e => e.key === 'Enter' && createLabel()}
             />
-            <button onClick={createLabel} className="bg-indigo-600 text-white p-2 rounded hover:bg-indigo-700">
+            <button onClick={createLabel} className="bg-indigo-600 text-white p-2 rounded-lg hover:bg-indigo-700 shadow-sm transition">
               <Plus className="w-5 h-5" />
             </button>
           </div>
         </div>
 
-        <div className="flex-1 overflow-y-auto p-4 space-y-3">
+        <div className="flex-1 overflow-y-auto p-4 space-y-3 relative">
           {labels.map(l => {
             const count = products.filter(p => p.label_id === l.id).length;
-            const isActive = activeFilterLabel === l.id;
+            const isActiveFilter = activeFilterLabel === l.id;
+            const isDragTarget = dragHoverLabelId === l.id;
             
             return (
               <div 
                 key={l.id} 
-                onClick={() => setActiveFilterLabel(isActive ? null : l.id)}
+                onClick={() => setActiveFilterLabel(isActiveFilter ? null : l.id)}
+                onDragEnter={() => setDragHoverLabelId(l.id)}
+                onDragLeave={() => setDragHoverLabelId(null)}
                 onDragOver={(e) => {
                   e.preventDefault(); 
                   e.dataTransfer.dropEffect = "move";
+                  if (dragHoverLabelId !== l.id) setDragHoverLabelId(l.id);
                 }}
                 onDrop={(e) => {
                   e.preventDefault();
+                  setDragHoverLabelId(null);
                   const asin = e.dataTransfer.getData("text/plain");
                   if (asin) assignLabel(asin, l.id);
                 }}
-                className={`bg-white border rounded-lg p-3 shadow-sm flex items-center justify-between cursor-pointer transition
-                  hover:border-indigo-400 hover:shadow-md
-                  ${isActive ? 'ring-2 ring-indigo-500 bg-indigo-50' : 'border-gray-200'}
+                className={`bg-white border-2 rounded-xl p-3 shadow-sm flex items-center justify-between cursor-pointer transition-all duration-200
+                  ${isActiveFilter ? 'border-indigo-500 bg-indigo-50 shadow-md transform scale-[1.02]' : 'border-transparent'}
+                  ${isDragTarget ? 'border-indigo-400 bg-indigo-100 scale-[1.05] shadow-lg ring-4 ring-indigo-200' : 'hover:border-gray-300 hover:shadow-md'}
                 `}
               >
                 <div className="flex items-center gap-3 pointer-events-none">
-                  <div className="w-4 h-4 rounded-full shadow-sm" style={{ backgroundColor: l.color }}></div>
-                  <span className={`text-sm ${isActive ? 'font-bold text-indigo-900' : 'font-medium text-gray-800'}`}>{l.name}</span>
+                  <div className="w-5 h-5 rounded-full shadow-sm border border-black/10" style={{ backgroundColor: l.color }}></div>
+                  <span className={`text-sm ${isActiveFilter ? 'font-bold text-indigo-900' : 'font-medium text-gray-800'}`}>{l.name}</span>
                 </div>
-                <span className={`text-xs font-bold px-2 py-1 rounded-full pointer-events-none ${isActive ? 'bg-indigo-200 text-indigo-800' : 'bg-gray-100 text-gray-600'}`}>
-                  {count} items
+                <span className={`text-xs font-bold px-2.5 py-1 rounded-full pointer-events-none transition-colors ${isActiveFilter || isDragTarget ? 'bg-indigo-600 text-white shadow-sm' : 'bg-gray-100 text-gray-600'}`}>
+                  {count}
                 </span>
               </div>
             )
           })}
+          
           {labels.length === 0 && (
-            <div className="text-center text-gray-400 text-sm mt-10 border-2 border-dashed border-gray-200 rounded-xl p-6">
-              No labels created yet.
+            <div className="text-center text-gray-400 text-sm mt-10 border-2 border-dashed border-gray-300 rounded-xl p-6 bg-gray-50/50">
+              Aún no hay etiquetas creadas.
             </div>
           )}
           
           {/* Unassigned Dropzone (only visible while dragging) */}
-          {draggedAsin && (
-            <div 
-              onDragOver={(e) => e.preventDefault()}
-              onDrop={(e) => {
-                e.preventDefault();
-                const asin = e.dataTransfer.getData("text/plain");
-                if (asin) assignLabel(asin, null);
-              }}
-              className="mt-6 border-2 border-dashed border-red-300 bg-red-50 rounded-lg p-4 flex justify-center items-center text-red-500 font-bold text-sm"
-            >
-              ❌ Drop here to Unassign
-            </div>
-          )}
+          <div className={`mt-6 border-2 border-dashed rounded-xl p-4 flex justify-center items-center font-bold text-sm transition-all duration-300
+              ${draggedAsin ? 'opacity-100 h-16 border-red-400 bg-red-50 text-red-600 shadow-inner' : 'opacity-0 h-0 p-0 border-transparent overflow-hidden'}
+              ${dragHoverLabelId === 'unassign' ? 'scale-[1.05] bg-red-100 border-red-500 shadow-lg' : ''}
+            `}
+            onDragEnter={() => setDragHoverLabelId('unassign')}
+            onDragLeave={() => setDragHoverLabelId(null)}
+            onDragOver={(e) => {
+              e.preventDefault();
+              if (dragHoverLabelId !== 'unassign') setDragHoverLabelId('unassign');
+            }}
+            onDrop={(e) => {
+              e.preventDefault();
+              setDragHoverLabelId(null);
+              const asin = e.dataTransfer.getData("text/plain");
+              if (asin) assignLabel(asin, null);
+            }}
+          >
+            {draggedAsin && (
+              <span className="pointer-events-none">❌ Soltar aquí para Desasignar</span>
+            )}
+          </div>
         </div>
+      </div>
         
         {/* 
         <div className="p-4 border-t bg-white">
