@@ -58,7 +58,21 @@ def create_label(run_id: str, label: schemas.LabelBase, db: Session = Depends(da
     db.refresh(db_label)
     return db_label
 
+
+@app.put("/labels/{label_id}", response_model=schemas.Label)
+def edit_label(label_id: str, label_data: schemas.LabelBase, db: Session = Depends(database.get_db)):
+    db_label = db.query(models.Label).filter(models.Label.id == label_id).first()
+    if not db_label:
+        raise HTTPException(status_code=404, detail="Label not found")
+    db_label.name = label_data.name
+    if label_data.color:
+        db_label.color = label_data.color
+    db.commit()
+    db.refresh(db_label)
+    return db_label
+
 @app.delete("/labels/{label_id}")
+
 def delete_label(label_id: str, db: Session = Depends(database.get_db)):
     db_label = db.query(models.Label).filter(models.Label.id == label_id).first()
     if not db_label:

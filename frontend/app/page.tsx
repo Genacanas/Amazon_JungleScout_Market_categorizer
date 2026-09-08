@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Plus, Tag, ChevronRight, X, ImageIcon, Star, ShoppingCart, Trash2 } from "lucide-react";
+import { Plus, Tag, ChevronRight, X, ImageIcon, Star, ShoppingCart, Trash2, Edit2, Loader2 } from "lucide-react";
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 
 export default function Home() {
@@ -17,6 +17,7 @@ export default function Home() {
   const [draggedAsin, setDraggedAsin] = useState<string | null>(null);
   const [dragHoverLabelId, setDragHoverLabelId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isProcessing, setIsProcessing] = useState(false);
 
   const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
@@ -53,7 +54,7 @@ export default function Home() {
 
   const createLabel = async () => {
     if (!newLabelName.trim() || !runId) return;
-    
+    setIsProcessing(true);
     // Optimistic UI for label creation
     const tempId = "temp-" + Date.now();
     const tempColor = "#" + Math.floor(Math.random()*16777215).toString(16);
@@ -77,10 +78,13 @@ export default function Home() {
     } catch (err) {
       alert("Error creating label. Check your connection.");
       setLabels(prev => prev.filter(l => l.id !== tempId));
+    } finally {
+      setIsProcessing(false);
     }
   };
 
   const assignLabel = async (asin: string, label_id: string | null) => {
+    setIsProcessing(true);
     // Save original state for rollback
     const originalProducts = [...products];
     
@@ -102,13 +106,15 @@ export default function Home() {
       console.error(err);
       alert("⚠️ Connection error while saving. Reverting change.");
       setProducts(originalProducts); // Rollback
+    } finally {
+      setIsProcessing(false);
     }
   };
 
   const deleteLabel = async (e: React.MouseEvent, labelId: string) => {
     e.stopPropagation();
     if (!window.confirm("Are you sure you want to delete this label? All assigned products will become Unassigned.")) return;
-    
+    setIsProcessing(true);
     // Save original state for rollback
     const originalLabels = [...labels];
     const originalProducts = [...products];
@@ -128,6 +134,34 @@ export default function Home() {
       alert("⚠️ Connection error. Reverting change.");
       setLabels(originalLabels);
       setProducts(originalProducts);
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+  
+  const editLabel = async (e: React.MouseEvent, labelId: string, currentName: string) => {
+    e.stopPropagation();
+    const newName = window.prompt("Edit label name:", currentName);
+    if (!newName || newName.trim() === "" || newName === currentName) return;
+    
+    setIsProcessing(true);
+    const originalLabels = [...labels];
+    setLabels(labels.map(l => l.id === labelId ? { ...l, name: newName } : l));
+    
+    try {
+      const targetLabel = originalLabels.find(l => l.id === labelId);
+      const res = await fetch(`${API_URL}/labels/${labelId}`, { 
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: newName, color: targetLabel.color })
+      });
+      if (!res.ok) throw new Error("Failed to edit label");
+    } catch (err) {
+      console.error(err);
+      alert("⚠️ Connection error. Reverting change.");
+      setLabels(originalLabels);
+    } finally {
+      setIsProcessing(false);
     }
   };
   
@@ -175,8 +209,17 @@ export default function Home() {
   // Sort by revenue descending
   chartData.sort((a, b) => b.revenue - a.revenue);
 
+
   return (
-    <div className="flex h-screen bg-gray-50 text-gray-900 font-sans">
+    <div className="flex h-screen bg-gray-50 text-gray-900 font-sans relative">
+      
+      {/* Global Processing Overlay */}
+      {isProcessing && (
+        <div className="absolute top-4 right-1/2 translate-x-1/2 bg-indigo-600 text-white px-4 py-2 rounded-full shadow-lg flex items-center gap-2 z-50 animate-pulse font-medium text-sm">
+          <Loader2 className="w-4 h-4 animate-spin" /> Saving changes...
+        </div>
+      )}
+
       
       {/* Left Panel: Products */}
       <div className="w-2/3 border-r bg-white flex flex-col h-full">
@@ -453,9 +496,18 @@ export default function Home() {
                   <div className="w-5 h-5 rounded-full shadow-sm border border-black/10" style={{ backgroundColor: l.color }}></div>
                   <span className={`text-sm ${isActiveFilter ? 'font-bold text-indigo-900' : 'font-medium text-gray-800'}`}>{l.name}</span>
                 </div>
+
                 <div className="flex items-center gap-2">
                   <button
+                    onClick={(e) => editLabel(e, l.id, l.name)}
+                    className="opacity-0 group-hover:opacity-100 transition-opacity p-1.5 text-indigo-400 hover:text-white hover:bg-indigo-500 rounded-md"
+                    title="Edit Label"
+                  >
+                    <Edit2 className="w-4 h-4" />
+                  </button>
+                  <button
                     onClick={(e) => deleteLabel(e, l.id)}
+
                     className="opacity-0 group-hover:opacity-100 transition-opacity p-1.5 text-red-400 hover:text-white hover:bg-red-500 rounded-md"
                     title="Delete Label"
                   >
