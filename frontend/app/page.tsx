@@ -299,10 +299,23 @@ export default function Home() {
             ) : (
               <span className="font-bold text-gray-800 bg-gray-100 px-3 py-1 rounded-md">All Products</span>
             )}
+            
+            {/* Load More Button */}
+            {visibleCount < displayedProducts.length && (
+              <div className="col-span-full py-8 flex justify-center">
+                <button 
+                  onClick={() => setVisibleCount(prev => prev + 50)}
+                  className="bg-white border-2 border-indigo-200 text-indigo-700 hover:bg-indigo-50 font-bold py-2.5 px-8 rounded-full shadow-sm transition flex items-center gap-2"
+                >
+                  Load More Products ({displayedProducts.length - visibleCount} remaining)
+                </button>
+              </div>
+            )}
+
           </div>
         </div>
         
-        <div className="flex-1 overflow-y-auto p-4 bg-gray-100/50" onScroll={handleScroll}>
+        <div className="flex-1 overflow-y-auto p-4 bg-gray-100/50">
           
           {/* Analytics Dashboard */}
           <div className="mb-6 bg-white p-4 rounded-xl border border-gray-200 shadow-sm flex items-center justify-between">
@@ -423,12 +436,12 @@ export default function Home() {
                   )}
                   {p.label_id ? (
                     <div className="absolute top-2 right-2 bg-white/95 backdrop-blur px-2.5 py-1 rounded-full border border-gray-200 shadow-sm flex items-center gap-1.5 max-w-[130px] pointer-events-none z-10">
-                      <div className="w-2.5 h-2.5 rounded-full shrink-0 shadow-inner" style={{ backgroundColor: pLabel?.color || '#ccc' }}></div>
-                      <span className="text-[10px] font-bold text-gray-700 truncate" title={pLabel?.name}>{pLabel?.name || 'Unknown'}</span>
+                      <div className="w-3.5 h-3.5 rounded-full shrink-0 shadow-inner" style={{ backgroundColor: pLabel?.color || '#ccc' }}></div>
+                      <span className="text-[11px] font-bold text-gray-700 truncate" title={pLabel?.name}>{pLabel?.name || 'Unknown'}</span>
                     </div>
                   ) : (
                     <div className="absolute top-2 right-2 bg-amber-50/95 backdrop-blur px-2.5 py-1 rounded-full border border-amber-200 shadow-sm flex items-center max-w-[130px] pointer-events-none z-10">
-                      <span className="text-[10px] font-bold text-amber-700 truncate">Unassigned</span>
+                      <span className="text-[11px] font-bold text-amber-700 truncate">Unassigned</span>
                     </div>
                   )}
                 </div>
@@ -449,6 +462,19 @@ export default function Home() {
                 No products found in this view.
               </div>
             )}
+            
+            {/* Load More Button */}
+            {visibleCount < displayedProducts.length && (
+              <div className="col-span-full py-8 flex justify-center">
+                <button 
+                  onClick={() => setVisibleCount(prev => prev + 50)}
+                  className="bg-white border-2 border-indigo-200 text-indigo-700 hover:bg-indigo-50 font-bold py-2.5 px-8 rounded-full shadow-sm transition flex items-center gap-2"
+                >
+                  Load More Products ({displayedProducts.length - visibleCount} remaining)
+                </button>
+              </div>
+            )}
+
           </div>
           )}
         </div>
