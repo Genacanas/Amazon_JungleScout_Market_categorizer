@@ -31,6 +31,8 @@ class Product(Base):
     ai_normalized_data = Column(JSON)
     raw_reviews = Column(JSON)
     label_id = Column(String, ForeignKey("labels.id"), nullable=True)
+    is_fba = Column(Boolean, default=False)
+    found_for_keywords = Column(JSON, default=list)
     
     run = relationship("Run", back_populates="products")
     label = relationship("Label", back_populates="products")

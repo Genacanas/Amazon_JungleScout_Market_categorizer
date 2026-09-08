@@ -29,6 +29,8 @@ class ProductBase(BaseModel):
     ai_normalized_data: Optional[Any] = {}
     raw_reviews: Optional[List[Any]] = []
     label_id: Optional[str] = None
+    is_fba: Optional[bool] = False
+    found_for_keywords: Optional[List[str]] = []
 
 class ProductCreate(ProductBase):
     pass

@@ -20,10 +20,12 @@ export default function Home() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [bulkAssignTarget, setBulkAssignTarget] = useState<string | null>(null);
   const [visibleCount, setVisibleCount] = useState(50);
+  const [fbaFilter, setFbaFilter] = useState(false);
+  const [keywordFilter, setKeywordFilter] = useState<string | null>(null);
 
   useEffect(() => {
     setVisibleCount(50);
-  }, [activeFilterLabel]);
+  }, [activeFilterLabel, fbaFilter, keywordFilter]);
 
 
   const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
@@ -433,7 +435,10 @@ export default function Home() {
                   )}
                 </div>
                 <div className="text-xs text-gray-500 mb-1 flex justify-between pointer-events-none">
-                  <span className="font-mono bg-gray-100 px-1 rounded">{p.asin}</span>
+                  <div className="flex items-center gap-2">
+                    <span className="font-mono bg-gray-100 px-1 rounded">{p.asin}</span>
+                    {p.is_fba && <span className="bg-orange-100 text-orange-800 text-[9px] font-bold px-1.5 rounded uppercase tracking-wider border border-orange-200">FBA</span>}
+                  </div>
                   <span className="font-semibold text-gray-700 truncate max-w-[50%] text-right">{p.brand || 'No Brand'}</span>
                 </div>
                 <h3 className="text-sm font-medium line-clamp-2 leading-snug flex-1 pointer-events-none text-gray-800">{p.title}</h3>

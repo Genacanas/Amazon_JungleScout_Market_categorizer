@@ -67,7 +67,9 @@ def upload_run(run_folder: Path):
             "estimated_sales": js.get("estimatedSales") or 0,
             "est_revenue": js.get("estRevenue") or 0.0,
             "ai_normalized_data": norm,
-            "raw_reviews": revs if isinstance(revs, list) else []
+            "raw_reviews": revs if isinstance(revs, list) else [],
+            "is_fba": js.get("sellerType") in ["FBA", "AMZ"],
+            "found_for_keywords": sr.get("found_for_keywords", [])
         }
         products_payload.append(prod)
 
